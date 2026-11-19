@@ -8,6 +8,9 @@
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 //
 // The copy is byte-for-byte, so two runs always write identical output.
+// After writing, the program reads the target back and checks that its
+// byte length matches the source exactly; a mismatch is a hard failure
+// with a clear message instead of a silently truncated image.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -17,5 +20,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 const target = join(outDir, 'entry.png');
 
+const source = readFileSync(join(here, 'entry.png'));
 mkdirSync(outDir, { recursive: true });
-writeFileSync(target, readFileSync(join(here, 'entry.png')));
+writeFileSync(target, source);
+
+const written = readFileSync(target);
+if (written.length !== source.length) {
+  throw new Error(
+    `entry.png copy failed: wrote ${written.length} bytes, ` +
+      `expected ${source.length} bytes from the source image`,
+  );
+}
+console.log(`Wrote ${target} (${written.length} bytes, byte length verified).`);
